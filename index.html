@@ -484,6 +484,18 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
     </div>
 
     <div class="card">
+      <div class="card-head"><h2>🍅 番茄标签</h2></div>
+      <p class="muted" style="margin-top:0">直接改名字、换颜色就会保存。改名之后,以前的记录也会跟着改。</p>
+      <div id="tagEdit"></div>
+      <div class="lbl">添加新标签</div>
+      <div class="field">
+        <input id="newTagName" placeholder="标签名字" maxlength="8">
+        <select id="newTagColor" style="flex:0 0 96px"></select>
+        <button class="btn" id="tagAdd">添加</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-head"><h2>🌿 我的习惯</h2></div>
       <div id="habitEdit"></div>
       <div class="lbl">添加新习惯</div>
@@ -560,6 +572,13 @@ var DEFAULT={
   ],
   habitLog:{}, moodLog:{}, diary:{}, todos:[], expenses:[],
   pomoLog:{}, pomo:{focus:25,short:5,long:15},
+  tags:[
+    {id:'t1',name:'学习',color:'#8CA9A0'},
+    {id:'t2',name:'工作',color:'#8AA1B6'},
+    {id:'t3',name:'阅读',color:'#A69CB6'},
+    {id:'t4',name:'家务',color:'#C6B183'},
+    {id:'t5',name:'其他',color:'#C69AA0'}
+  ],
   newsApi:'', newsCache:{ts:0,items:[]}, saved:[],
   budget:2000, cutoff:0,
   countdown:{title:'中秋节',date:'2026-09-25'}
@@ -574,6 +593,8 @@ function load(){
     for(var k in d){ if(d[k]!=null) base[k]=d[k]; }
     if(!base.pomo||!base.pomo.focus) base.pomo={focus:25,short:5,long:15};
     if(!base.pomoLog) base.pomoLog={};
+    if(!Array.isArray(base.tags)||!base.tags.length) base.tags=JSON.parse(JSON.stringify(DEFAULT.tags));
+    if(!Array.isArray(base.saved)) base.saved=[];
     if(!base.newsCache) base.newsCache={ts:0,items:[]};
     return base;
   }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }
@@ -654,11 +675,17 @@ var MOODS=['😊','🥰','😌','😐','😔','😤','😭'];
 var MOOD_NOTE={'😊':'今天也要慢慢来呀 🪷','🥰':'心里开着花的一天 🌸','😌':'松弛一点也很好 🍃','😐':'平平淡淡也算数 ☁️','😔':'难过是会过去的 🌦️','😤':'先深呼吸三下 🌬️','😭':'今天允许自己不坚强 🫧'};
 var CATS=['🍜 餐饮','🛒 日用','🚌 交通','👗 服饰','💊 医疗','🎁 人情','📚 学习','✨ 其他'];
 var curCat=CATS[0];
-var TAGS=[
-  {n:'学习',c:'#8CA9A0'},{n:'工作',c:'#8AA1B6'},{n:'阅读',c:'#A69CB6'},
-  {n:'家务',c:'#C6B183'},{n:'其他',c:'#C69AA0'}
+var PALETTE=[
+  {n:'池绿',c:'#8CA9A0'},{n:'柳绿',c:'#9BB08A'},{n:'赭黄',c:'#C6B183'},{n:'莲粉',c:'#C69AA0'},
+  {n:'桥蓝',c:'#8AA1B6'},{n:'藤紫',c:'#A69CB6'},{n:'柳褐',c:'#B0A18C'},{n:'雾灰',c:'#A2A89F'}
 ];
-var curTag='学习', pRange='day';
+var curTagId='', pRange='day';
+function tagById(id){ return (state.tags||[]).filter(function(t){return t.id===id})[0]; }
+function ensureTag(){
+  if(!state.tags.length){ curTagId=''; return null; }
+  if(!tagById(curTagId)) curTagId=state.tags[0].id;
+  return tagById(curTagId);
+}
 var revMonth=todayKey().slice(0,7);
 
 /* ================= 番茄钟 ================= */
@@ -707,9 +734,9 @@ function stopTimer(silent){
 function finishTimer(){
   var was=timer.mode;
   if(was==='focus'){
-    var dk=todayKey();
+    var dk=todayKey(), tg=ensureTag();
     if(!state.pomoLog[dk]) state.pomoLog[dk]=[];
-    state.pomoLog[dk].push({tag:curTag,min:state.pomo.focus,ts:Date.now()});
+    state.pomoLog[dk].push({tagId:tg?tg.id:'',tag:tg?tg.name:'未分类',min:state.pomo.focus,ts:Date.now()});
     timer.round++; save();
   }
   timer.mode='idle'; timer.paused=false; timer.leftMs=0;
@@ -740,12 +767,24 @@ function rangeKeys(r){
   }
   return out;
 }
-function tagTotals(keys){
-  var m={}; TAGS.forEach(function(t){ m[t.n]=0; });
-  keys.forEach(function(k){ (state.pomoLog[k]||[]).forEach(function(x){
-    if(m[x.tag]==null) m[x.tag]=0; m[x.tag]+=(+x.min||0);
-  }); });
-  return m;
+function tagStats(keys){
+  var by={}, order=[];
+  (state.tags||[]).forEach(function(t){ by[t.id]={name:t.name,color:t.color,v:0}; order.push(t.id); });
+  keys.forEach(function(k){
+    (state.pomoLog[k]||[]).forEach(function(x){
+      var id=x.tagId;
+      if(!id || !by[id]){
+        var hit=(state.tags||[]).filter(function(t){return t.name===x.tag})[0];
+        if(hit) id=hit.id;
+        else{
+          id='gone:'+(x.tag||'未分类');
+          if(!by[id]){ by[id]={name:(x.tag||'未分类')+'(已删)',color:'#C8CBC4',v:0}; order.push(id); }
+        }
+      }
+      by[id].v+=(+x.min||0);
+    });
+  });
+  return order.map(function(id){ return by[id]; });
 }
 function arcPath(cx,cy,r,a0,a1){
   var x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0);
@@ -763,9 +802,9 @@ function pieSVG(items,size){
     var a=-Math.PI/2;
     items.forEach(function(x){
       if(!x.v) return;
-      if(x.v>=total){ out+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+x.c+'"/>'; a+=Math.PI*2; return; }
+      if(x.v>=total){ out+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+x.color+'"/>'; a+=Math.PI*2; return; }
       var a2=a+x.v/total*Math.PI*2;
-      out+='<path d="'+arcPath(cx,cy,r,a,a2)+'" fill="'+x.c+'"/>';
+      out+='<path d="'+arcPath(cx,cy,r,a,a2)+'" fill="'+x.color+'"/>';
       a=a2;
     });
   }
@@ -784,18 +823,22 @@ function renderPomoClock(){
   $('#ring').setAttribute('stroke-dashoffset', (552.9*(1-pct)).toFixed(1));
 }
 function renderPomo(){
-  $('#tagRow').innerHTML=TAGS.map(function(t){
-    return '<button class="cat'+(t.n===curTag?' on':'')+'" data-tag="'+t.n+'"'+
-      (timer.mode!=='idle'?' disabled style="opacity:.45"':'')+'>'+t.n+'</button>';
-  }).join('');
+  var cur=ensureTag();
+  $('#tagRow').innerHTML=(state.tags||[]).map(function(t){
+    return '<button class="cat'+(t.id===curTagId?' on':'')+'" data-tag="'+t.id+'"'+
+      (timer.mode!=='idle'?' disabled style="opacity:.45"':'')+'>'+
+      '<span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:'+t.color+';margin-right:6px;vertical-align:0"></span>'+
+      esc(t.name)+'</button>';
+  }).join('')||'<span class="tiny">还没有标签,去「设置与数据」里加一个 🍅</span>';
 
   renderPomoClock();
-  $('#clockSub').textContent = timer.mode==='idle' ? ('准备专注 · '+curTag)
-    : (timer.paused?'已暂停':(timer.mode==='focus'?('专注中 · '+curTag):'休息中'));
+  $('#clockSub').textContent = timer.mode==='idle' ? ('准备专注'+(cur?' · '+cur.name:''))
+    : (timer.paused?'已暂停':(timer.mode==='focus'?('专注中 · '+(cur?cur.name:'')):'休息中'));
 
   var b='';
   if(timer.mode==='idle'){
-    b='<button class="btn" data-p="focus">开始专注</button>';
+    b= cur ? '<button class="btn" data-p="focus">开始专注</button>'
+           : '<button class="btn" disabled style="opacity:.5">先加一个标签</button>';
     if(timer.round>0) b+='<button class="btn soft" data-p="'+(timer.round%4===0?'long':'short')+'">'+(timer.round%4===0?'长休息':'短休息')+'</button>';
   }else if(timer.paused){
     b='<button class="btn" data-p="resume">继续</button><button class="btn soft" data-p="stop">放弃</button>';
@@ -804,21 +847,19 @@ function renderPomo(){
   }
   $('#pbtns').innerHTML=b;
 
-  var dk=todayKey(), tl=state.pomoLog[dk]||[];
-  var mins=pomoMinutes(dk);
-  var mt=tagTotals([dk]), top='—', tv=0;
-  for(var k in mt){ if(mt[k]>tv){ tv=mt[k]; top=k; } }
+  var dk=todayKey(), tl=state.pomoLog[dk]||[], mins=pomoMinutes(dk);
+  var ts=tagStats([dk]), top='—', tv=0;
+  ts.forEach(function(x){ if(x.v>tv){ tv=x.v; top=x.name; } });
   $('#pTodayStat').innerHTML=
     '<div><strong>'+tl.length+'</strong><span>番茄个数</span></div>'+
     '<div><strong>'+mins+'</strong><span>专注分钟</span></div>'+
     '<div><strong>'+(tv?top:'—')+'</strong><span>主要投入</span></div>';
 
-  var keys=rangeKeys(pRange), tot=tagTotals(keys);
-  var items=TAGS.map(function(t){ return {n:t.n,c:t.c,v:tot[t.n]||0}; });
+  var keys=rangeKeys(pRange), items=tagStats(keys);
   $('#pieBox').innerHTML=pieSVG(items,132);
   var sum=items.reduce(function(s,x){return s+x.v},0);
   $('#pieLeg').innerHTML = sum ? items.filter(function(x){return x.v}).map(function(x){
-    return '<div class="li"><i style="background:'+x.c+'"></i>'+x.n+
+    return '<div class="li"><i style="background:'+x.color+'"></i>'+esc(x.name)+
       '<b>'+Math.round(x.v/sum*100)+'%</b></div>';
   }).join('') : '<div class="tiny">这个区间还没有记录<br>跑完一个番茄就会出现</div>';
 
@@ -919,18 +960,37 @@ function loadNews(force){
   var c=state.newsCache;
   if(!force && c.ts && Date.now()-c.ts<15*60000 && c.items.length){ renderNews(); return; }
   renderNews('正在获取…');
-  var ctl=new AbortController(), to=setTimeout(function(){ctl.abort()},12000);
+  fetchNews(url, 25000, function(err){
+    if(err && /abort/i.test(err)){
+      renderNews('第一次超时了,再试一次…');
+      fetchNews(url, 40000, function(e2){
+        renderNews(e2?('拿不到新内容('+shortErr(e2)+'),下面是上次的缓存'):null);
+      });
+    }else{
+      renderNews(err?('拿不到新内容('+shortErr(err)+'),下面是上次的缓存'):null);
+    }
+  });
+}
+function shortErr(e){
+  var s=String(e||'失败');
+  if(/abort/i.test(s)) return '连接超时';
+  if(/Failed to fetch|NetworkError|Load failed/i.test(s)) return '网络不通';
+  return s.slice(0,40);
+}
+function fetchNews(url, ms, done){
+  var ctl=new AbortController(), to=setTimeout(function(){ctl.abort()},ms);
   fetch(url,{signal:ctl.signal})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(d){
       clearTimeout(to);
       var items=(d.items||[]).slice(0,40);
-      if(!items.length) throw new Error('空');
-      state.newsCache={ts:Date.now(),items:items}; save(); renderNews();
+      if(!items.length) throw new Error('返回是空的');
+      state.newsCache={ts:Date.now(),items:items}; save();
+      done(null);
     })
     .catch(function(err){
       clearTimeout(to);
-      renderNews('拿不到新内容('+(err&&err.message||'失败')+'),下面是上次的缓存');
+      done((err&&err.message)||'失败');
     });
 }
 
@@ -1105,6 +1165,20 @@ function renderSettings(){
   $('#setCdDate').value=state.countdown.date;
   $('#setCut').value=String(state.cutoff||0);
   $('#setNews').value=state.newsApi||'';
+  var pal=PALETTE.map(function(p){return '<option value="'+p.c+'">'+p.n+'</option>'}).join('');
+  $('#tagEdit').innerHTML=(state.tags||[]).map(function(t){
+    return '<div class="item">'+
+      '<span style="display:inline-block;width:14px;height:14px;border-radius:5px;background:'+t.color+';flex:none"></span>'+
+      '<input class="tagname" data-tagname="'+t.id+'" value="'+esc(t.name)+'" maxlength="8" '+
+        'style="flex:1;min-width:0;padding:7px 10px;border-radius:11px;border:1.5px solid var(--hair);background:#FAFBF8">'+
+      '<select data-tagcolor="'+t.id+'" style="flex:0 0 84px;padding:7px 8px;border-radius:11px;border:1.5px solid var(--hair);background:#FAFBF8">'+pal+'</select>'+
+      '<button class="x" data-deltag="'+t.id+'">×</button></div>';
+  }).join('')||'<div class="empty">还没有标签 🍅</div>';
+  (state.tags||[]).forEach(function(t){
+    var sel=document.querySelector('[data-tagcolor="'+t.id+'"]'); if(sel) sel.value=t.color;
+  });
+  if(!$('#newTagColor').innerHTML) $('#newTagColor').innerHTML=pal;
+
   $('#habitEdit').innerHTML=state.habits.map(function(h){
     return '<div class="item"><span>'+h.emoji+'</span><span class="txt">'+esc(h.name)+
       (h.target>1?' <span class="tiny">· 目标 '+h.target+' 次</span>':'')+'</span>'+
@@ -1145,7 +1219,7 @@ document.addEventListener('click',function(e){
       state.habits=state.habits.filter(function(x){return x.id!==el.getAttribute('data-delhabit')}); save(); render();
     }
   }
-  if(el=e.target.closest('[data-tag]')){ if(timer.mode==='idle'){ curTag=el.dataset.tag; renderPomo(); } }
+  if(el=e.target.closest('[data-tag]')){ if(timer.mode==='idle'){ curTagId=el.dataset.tag; renderPomo(); } }
   if(el=e.target.closest('[data-p]')){
     var a=el.dataset.p;
     if(a==='focus') startTimer('focus');
@@ -1225,6 +1299,37 @@ $('#saveNews').onclick=function(){
   if(!u && !NEWS_API_DEFAULT){ toast('已清空'); renderNews(); return; }
   toast(u?'正在测试…':'已改回默认接口'); go('news'); loadNews(true);
 };
+document.addEventListener('change',function(e){
+  var el;
+  if(el=e.target.closest('[data-tagcolor]')){
+    var t=tagById(el.getAttribute('data-tagcolor'));
+    if(t){ t.color=el.value; save(); render(); }
+  }
+  if(el=e.target.closest('[data-tagname]')){
+    var t2=tagById(el.getAttribute('data-tagname'));
+    var v=el.value.trim();
+    if(t2){ t2.name=v||t2.name; save(); render(); toast('改好了'); }
+  }
+});
+document.addEventListener('click',function(e){
+  var el;
+  if(el=e.target.closest('[data-deltag]')){
+    var id=el.getAttribute('data-deltag'), t=tagById(id);
+    if(!t) return;
+    if(!confirm('删掉「'+t.name+'」?以前用这个标签的记录会保留,在统计里显示为「已删」。')) return;
+    state.tags=state.tags.filter(function(x){ return x.id!==id; });
+    if(curTagId===id) curTagId='';
+    save(); render();
+  }
+});
+$('#tagAdd').onclick=function(){
+  var n=$('#newTagName').value.trim();
+  if(!n){ toast('先起个名字'); return; }
+  if(state.tags.length>=8){ toast('最多 8 个标签'); return; }
+  state.tags.push({id:uid(),name:n,color:$('#newTagColor').value||PALETTE[0].c});
+  $('#newTagName').value=''; save(); render(); toast('标签加好了 🍅');
+};
+
 $('#savedClear').onclick=function(){
   if(!state.saved.length) return;
   if(!confirm('清空全部 '+state.saved.length+' 条收藏?')) return;
