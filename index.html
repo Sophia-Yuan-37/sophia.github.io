@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F3FAF2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="小绿芽">
+<title>小绿芽 · 个人工作台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+<style>
+:root{
+  --leaf:#7FBF8E;
+  --leaf-deep:#4E8F68;
+  --leaf-mist:#E4F3E6;
+  --sun:#F2DC93;
+  --sun-mist:#FCF6E0;
+  --blossom:#F3B9C4;
+  --blossom-mist:#FCEAEE;
+  --paper:#FFFFFF;
+  --ink:#35473C;
+  --ink2:#78897E;
+  --ink3:#A9B8AE;
+  --hair:#E9F1E8;
+  --r:22px;
+  --shadow:0 4px 18px rgba(110,150,120,.09);
+  --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--font);
+  color:var(--ink);
+  background:linear-gradient(170deg,#F1F9F0 0%,#F7FAEE 45%,#FDF4F2 100%);
+  background-attachment:fixed;
+  min-height:100vh;
+  font-size:15px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;font-size:inherit;color:inherit;border:none;background:none;cursor:pointer}
+input,select{font-family:inherit;font-size:inherit;color:inherit}
+.app{max-width:480px;margin:0 auto;padding:0 16px calc(40px + env(safe-area-inset-bottom));position:relative}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky;top:0;z-index:30;
+  display:flex;align-items:center;gap:12px;
+  padding:calc(14px + env(safe-area-inset-top)) 0 12px;
+  background:linear-gradient(180deg,rgba(244,250,242,.96) 60%,rgba(244,250,242,0));
+  backdrop-filter:blur(8px);
+}
+.menu-btn{
+  width:42px;height:42px;flex:none;border-radius:14px;
+  background:var(--paper);box-shadow:var(--shadow);
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;
+}
+.menu-btn i{display:block;width:16px;height:2px;border-radius:2px;background:var(--leaf-deep)}
+.topbar h1{margin:0;font-size:21px;font-weight:700;letter-spacing:.5px;flex:1}
+.topbar .date{font-size:13px;color:var(--ink2);flex:none}
+
+/* ---------- 抽屉 ---------- */
+.scrim{
+  position:fixed;inset:0;z-index:40;background:rgba(60,90,70,.28);
+  backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .28s;
+}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;left:0;bottom:0;z-index:50;width:255px;max-width:78vw;
+  background:linear-gradient(180deg,#F6FBF5,#FCF7EC);
+  box-shadow:6px 0 28px rgba(90,130,100,.16);
+  transform:translateX(-102%);transition:transform .3s cubic-bezier(.3,.8,.4,1);
+  display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top);
+}
+.drawer.on{transform:translateX(0)}
+.drawer-head{padding:20px 20px 16px;border-bottom:1px solid var(--hair);display:flex;align-items:center;gap:12px}
+.drawer-head .mark{width:42px;height:42px;border-radius:14px;background:var(--paper);box-shadow:var(--shadow);display:grid;place-items:center;font-size:20px}
+.drawer-head strong{display:block;font-size:17px;letter-spacing:1px}
+.drawer-head span{display:block;font-size:9px;letter-spacing:2.2px;color:var(--ink3);text-transform:uppercase}
+.nav{flex:1;overflow-y:auto;padding:14px 12px 20px}
+.nav .group{font-size:11px;color:var(--ink3);padding:14px 10px 6px;letter-spacing:1px}
+.nav a{
+  display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;
+  color:var(--ink);text-decoration:none;font-size:15px;margin-bottom:2px;
+  position:relative;transition:background .18s;
+}
+.nav a .ico{width:30px;height:30px;flex:none;border-radius:10px;background:var(--leaf-mist);display:grid;place-items:center;font-size:15px}
+.nav a.active{background:var(--paper);box-shadow:var(--shadow);font-weight:600}
+.nav a.active::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;border-radius:3px;background:var(--leaf)}
+.drawer-foot{padding:12px 16px calc(16px + env(safe-area-inset-bottom));font-size:12px;color:var(--ink2)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--leaf);margin-right:7px;vertical-align:1px}
+.dot.off{background:#E0A2A2}
+
+/* ---------- 通用卡片 ---------- */
+.card{background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;margin-bottom:14px}
+.card.mist{background:linear-gradient(150deg,var(--leaf-mist),var(--sun-mist))}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-head h2{margin:0;font-size:15.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.card-head .more{font-size:12.5px;color:var(--ink2)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.muted{color:var(--ink2);font-size:13px}
+.tiny{font-size:12px;color:var(--ink3)}
+.empty{text-align:center;color:var(--ink3);font-size:13px;padding:22px 10px;line-height:1.9}
+.view{display:none;animation:rise .32s ease both}
+.view.active{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---------- 心情 ---------- */
+.mood-note{text-align:center;font-size:13.5px;color:var(--leaf-deep);margin:2px 0 4px;font-weight:600}
+.moods{display:flex;justify-content:center;flex-wrap:wrap;gap:9px;padding:6px 0 10px}
+.mood{
+  width:44px;height:44px;border-radius:50%;background:var(--paper);
+  box-shadow:var(--shadow);font-size:21px;display:grid;place-items:center;
+  transition:transform .2s,box-shadow .2s;
+}
+.mood:active{transform:scale(.92)}
+.mood.on{transform:scale(1.12);box-shadow:0 0 0 3px var(--blossom),var(--shadow)}
+
+/* ---------- 周历 ---------- */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.week .wd{font-size:11px;color:var(--ink3);padding-bottom:6px}
+.week .day{padding:7px 0;border-radius:12px;font-size:14px;font-variant-numeric:tabular-nums}
+.week .day.today{background:var(--leaf);color:#fff;font-weight:700}
+.week .day.past{color:var(--ink3)}
+
+/* ---------- 倒数日 ---------- */
+.count{background:linear-gradient(155deg,var(--blossom-mist),var(--sun-mist));border-radius:var(--r);padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.count .lab{font-size:12px;color:var(--ink2)}
+.count .name{font-size:14.5px;font-weight:700;margin-top:2px}
+.count .num{font-size:38px;font-weight:800;line-height:1.15;margin-top:auto;color:var(--leaf-deep);font-variant-numeric:tabular-nums}
+.count .num small{font-size:14px;font-weight:600;margin-left:3px}
+
+/* ---------- 发芽进度条(签名元素) ---------- */
+.sprout{position:relative;height:26px;margin:2px 0 12px}
+.sprout .track{position:absolute;left:0;right:0;top:11px;height:7px;border-radius:7px;background:var(--hair)}
+.sprout .fill{position:absolute;left:0;top:11px;height:7px;border-radius:7px;background:linear-gradient(90deg,var(--sun),var(--leaf));transition:width .5s cubic-bezier(.3,.9,.4,1)}
+.sprout .bud{position:absolute;top:0;font-size:19px;transform:translateX(-50%);transition:left .5s cubic-bezier(.3,.9,.4,1)}
+
+/* ---------- 习惯 ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:5px 12px;border-radius:999px;font-size:12.5px;background:var(--leaf-mist);color:var(--leaf-deep)}
+.chip.todo{background:var(--sun-mist);color:#93803D}
+.streak{font-size:12px;background:var(--blossom-mist);color:#B4707F;padding:5px 11px;border-radius:999px;font-weight:600}
+.hgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.habit{background:var(--paper);border-radius:18px;box-shadow:var(--shadow);padding:14px;border:2px solid transparent;transition:border-color .2s,background .2s;text-align:left;display:block;width:100%}
+.habit.done{border-color:var(--leaf);background:linear-gradient(150deg,#F2FBF3,#FFFFFF)}
+.habit .hn{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.habit .hs{font-size:12px;color:var(--ink2);margin-top:6px}
+.habit.wide{grid-column:1/-1}
+.cups{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.cup{width:26px;height:30px;border-radius:5px 5px 9px 9px;border:2px solid var(--leaf);opacity:.35;transition:opacity .2s,background .2s}
+.cup.on{opacity:1;background:var(--leaf)}
+.counter{display:flex;align-items:center;gap:10px;margin-top:10px}
+.counter .n{font-size:22px;font-weight:800;color:var(--leaf-deep);font-variant-numeric:tabular-nums}
+.mini{padding:5px 12px;border-radius:999px;background:var(--leaf-mist);color:var(--leaf-deep);font-size:12.5px;font-weight:600}
+.mini.ghost{background:var(--hair);color:var(--ink2)}
+
+/* ---------- Tab ---------- */
+.tabs{display:flex;gap:6px;background:var(--paper);padding:5px;border-radius:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.tabs button{flex:1;padding:9px;border-radius:12px;font-size:14px;color:var(--ink2)}
+.tabs button.on{background:var(--leaf-mist);color:var(--leaf-deep);font-weight:700}
+.tabs .badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:9px;background:var(--blossom);color:#fff;font-size:11px;line-height:18px}
+
+/* ---------- 表单 ---------- */
+.field{display:flex;gap:8px;margin-bottom:12px}
+.field input,.field select{flex:1;min-width:0;padding:11px 13px;border-radius:14px;border:1.5px solid var(--hair);background:#FBFDFA;outline:none}
+.field input:focus,.field select:focus{border-color:var(--leaf)}
+.btn{padding:11px 17px;border-radius:14px;background:var(--leaf);color:#fff;font-weight:600;flex:none}
+.btn.soft{background:var(--leaf-mist);color:var(--leaf-deep)}
+.btn.warn{background:var(--blossom-mist);color:#B4707F}
+.btn.block{width:100%;display:block;margin-bottom:9px}
+.lbl{font-size:12.5px;color:var(--ink2);margin:14px 0 6px}
+
+/* ---------- 列表 ---------- */
+.item{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid var(--hair)}
+.item:last-child{border-bottom:none}
+.tick{width:23px;height:23px;flex:none;border-radius:50%;border:2px solid var(--leaf);display:grid;place-items:center;font-size:12px;color:#fff}
+.tick.on{background:var(--leaf)}
+.item .txt{flex:1;font-size:14.5px;word-break:break-word}
+.item.done .txt{color:var(--ink3);text-decoration:line-through}
+.x{color:var(--ink3);font-size:17px;padding:0 4px;flex:none}
+.amt{font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+
+/* ---------- 预算 ---------- */
+.bud-num{font-size:33px;font-weight:800;color:var(--leaf-deep);font-variant-numeric:tabular-nums;line-height:1.2}
+.bud-num.over{color:#D3737F}
+.bar{height:9px;border-radius:9px;background:var(--hair);overflow:hidden;margin:11px 0 7px}
+.bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--sun),var(--leaf));transition:width .5s}
+.bar i.over{background:linear-gradient(90deg,var(--sun),#E58A97)}
+.catrow{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.cat{padding:7px 13px;border-radius:999px;background:#F7FAF6;font-size:13px;border:1.5px solid transparent}
+.cat.on{background:var(--sun-mist);border-color:var(--sun);font-weight:600}
+.daygroup{font-size:12px;color:var(--ink3);margin:14px 0 2px}
+
+/* ---------- 提示条 ---------- */
+.warn-bar{background:var(--sun-mist);border:1.5px solid var(--sun);border-radius:16px;padding:12px 14px;font-size:13px;margin-bottom:14px;line-height:1.75}
+.toast{
+  position:fixed;left:50%;bottom:36px;transform:translate(-50%,14px);z-index:80;
+  background:rgba(53,71,60,.93);color:#fff;padding:11px 20px;border-radius:999px;font-size:13.5px;
+  opacity:0;pointer-events:none;transition:.28s;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="mark">🌱</div>
+    <div><strong id="brandName">小绿芽</strong><span>Personal Workspace</span></div>
+  </div>
+  <nav class="nav" id="nav">
+    <a href="#" data-view="home" class="active"><span class="ico">🏡</span>今日预览</a>
+    <div class="group">生活</div>
+    <a href="#" data-view="life"><span class="ico">🌿</span>日常生活</a>
+    <a href="#" data-view="ledger"><span class="ico">🧺</span>记账本</a>
+    <div class="group">其他</div>
+    <a href="#" data-view="settings"><span class="ico">⚙️</span>设置与数据</a>
+  </nav>
+  <div class="drawer-foot"><span class="dot" id="storeDot"></span><span id="storeTxt">数据已保存在本机</span></div>
+</aside>
+
+<div class="app">
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" aria-label="打开菜单"><i></i><i></i><i></i></button>
+    <h1 id="viewTitle">今日预览</h1>
+    <div class="date" id="topDate"></div>
+  </header>
+
+  <div id="warnSlot"></div>
+
+  <!-- ========== 今日预览 ========== -->
+  <section class="view active" id="view-home">
+    <div class="card mist">
+      <div class="moods" id="moods"></div>
+      <div class="mood-note" id="moodNote">今天也要慢慢来呀 🌷</div>
+    </div>
+
+    <div class="row2">
+      <div class="card" style="margin:0">
+        <div class="card-head" style="margin-bottom:10px"><h2>📅 本周</h2></div>
+        <div class="week" id="week"></div>
+      </div>
+      <div class="count" id="countBox"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="card-head"><h2>🌱 今日习惯</h2><button class="more" data-goto="life">详情 ›</button></div>
+      <div class="sprout" id="homeSprout">
+        <div class="track"></div><div class="fill"></div><div class="bud">🌱</div>
+      </div>
+      <div class="chips" id="homeHabits"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>📋 今日待办</h2><button class="more" data-goto="life">全部 ›</button></div>
+      <div id="homeTodos"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>🧺 本月花销</h2><button class="more" data-goto="ledger">明细 ›</button></div>
+      <div class="bud-num" id="homeSpent">¥0</div>
+      <div class="bar"><i id="homeBar" style="width:0%"></i></div>
+      <div class="muted" id="homeBudget"></div>
+    </div>
+  </section>
+
+  <!-- ========== 日常生活 ========== -->
+  <section class="view" id="view-life">
+    <div class="tabs">
+      <button class="on" data-tab="habits">🌿 每日习惯</button>
+      <button data-tab="todos">📋 待办事项<span class="badge" id="todoBadge">0</span></button>
+    </div>
+
+    <div id="tab-habits">
+      <div class="card mist">
+        <div class="card-head" style="margin-bottom:10px">
+          <h2>📖 今日小结</h2><span class="streak" id="streak">🔥 连续 0 天</span>
+        </div>
+        <div class="sprout" id="lifeSprout">
+          <div class="track"></div><div class="fill"></div><div class="bud">🌱</div>
+        </div>
+        <div class="muted" id="lifeCount" style="margin-bottom:10px"></div>
+        <div class="chips" id="doneChips"></div>
+        <div class="chips" id="leftChips" style="margin-top:8px"></div>
+      </div>
+      <div class="hgrid" id="habitGrid"></div>
+      <p class="tiny" style="text-align:center;margin-top:16px">习惯可以在「设置与数据」里增删改</p>
+    </div>
+
+    <div id="tab-todos" style="display:none">
+      <div class="card">
+        <div class="field">
+          <input id="todoInput" placeholder="今天要做点什么?" maxlength="60">
+          <button class="btn" id="todoAdd">添加</button>
+        </div>
+        <div id="todoList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 记账本 ========== -->
+  <section class="view" id="view-ledger">
+    <div class="card mist">
+      <div class="muted" id="ledMonth"></div>
+      <div class="bud-num" id="ledSpent">¥0</div>
+      <div class="bar"><i id="ledBar" style="width:0%"></i></div>
+      <div class="muted" id="ledNote"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>✏️ 记一笔</h2></div>
+      <div class="catrow" id="catRow"></div>
+      <div class="field">
+        <input id="expAmt" type="number" inputmode="decimal" placeholder="金额" step="0.01">
+        <input id="expNote" placeholder="备注(可不填)" maxlength="24">
+      </div>
+      <button class="btn block" id="expAdd">记下来</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>🧾 本月明细</h2></div>
+      <div id="expList"></div>
+    </div>
+  </section>
+
+  <!-- ========== 设置 ========== -->
+  <section class="view" id="view-settings">
+    <div class="card">
+      <div class="card-head"><h2>🌸 基础设置</h2></div>
+      <div class="lbl">工作台名字</div>
+      <div class="field"><input id="setName" maxlength="10"><button class="btn soft" id="saveName">保存</button></div>
+      <div class="lbl">月度预算(元)</div>
+      <div class="field"><input id="setBudget" type="number" inputmode="numeric"><button class="btn soft" id="saveBudget">保存</button></div>
+      <div class="lbl">倒数日</div>
+      <div class="field"><input id="setCdName" placeholder="名字" maxlength="10"></div>
+      <div class="field"><input id="setCdDate" type="date"><button class="btn soft" id="saveCd">保存</button></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>🌿 我的习惯</h2></div>
+      <div id="habitEdit"></div>
+      <div class="lbl">添加新习惯</div>
+      <div class="field">
+        <input id="newEmoji" placeholder="🌼" maxlength="4" style="flex:0 0 62px;text-align:center">
+        <input id="newName" placeholder="习惯名字" maxlength="12">
+      </div>
+      <div class="field">
+        <select id="newTarget">
+          <option value="1">打卡型(点一下就完成)</option>
+          <option value="8">计数型 · 目标 8 次</option>
+          <option value="3">计数型 · 目标 3 次</option>
+          <option value="5">计数型 · 目标 5 次</option>
+        </select>
+        <button class="btn" id="habitAdd">添加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>💾 数据备份</h2></div>
+      <p class="muted" style="margin-top:0">数据只存在这台设备的浏览器里。换手机、清缓存、换浏览器都会丢,所以记得偶尔导出一份存到网盘。</p>
+      <button class="btn block" id="btnExport">导出数据到文件</button>
+      <button class="btn soft block" id="btnImport">从文件导入数据</button>
+      <input type="file" id="fileIn" accept="application/json,.json" style="display:none">
+      <button class="btn warn block" id="btnReset">清空全部数据</button>
+    </div>
+
+    <p class="tiny" style="text-align:center">小绿芽 · 单文件个人工作台 · 无账号 · 不联网</p>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 存储 ============ */
+var KEY='springWorkspace.v1', storeOK=true, mem=null;
+try{localStorage.setItem('__t','1');localStorage.removeItem('__t');}catch(e){storeOK=false;}
+
+var DEFAULT={
+  appName:'小绿芽',
+  habits:[
+    {id:'h1',emoji:'💧',name:'每日8杯水',target:8},
+    {id:'h2',emoji:'⏰',name:'准时起床',target:1},
+    {id:'h3',emoji:'🌙',name:'早睡作息',target:1},
+    {id:'h4',emoji:'🚶',name:'饭后慢走',target:1},
+    {id:'h5',emoji:'🥚',name:'早餐鸡蛋',target:1},
+    {id:'h6',emoji:'🛁',name:'睡前泡脚',target:1},
+    {id:'h7',emoji:'🏃',name:'30分钟运动',target:1}
+  ],
+  habitLog:{}, moodLog:{}, todos:[], expenses:[],
+  budget:2000,
+  countdown:{title:'中秋节',date:'2026-09-25'}
+};
+
+function load(){
+  var raw=null;
+  try{ raw=storeOK?localStorage.getItem(KEY):mem; }catch(e){}
+  if(!raw) return JSON.parse(JSON.stringify(DEFAULT));
+  try{
+    var d=JSON.parse(raw), base=JSON.parse(JSON.stringify(DEFAULT));
+    for(var k in d){ base[k]=d[k]; }
+    return base;
+  }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }
+}
+function save(){
+  var raw=JSON.stringify(state);
+  if(storeOK){ try{ localStorage.setItem(KEY,raw); }catch(e){ storeOK=false; showStore(); } }
+  else mem=raw;
+}
+var state=load();
+
+/* ============ 小工具 ============ */
+function $(s){return document.querySelector(s)}
+function $$(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function key(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function today(){ return key(new Date()); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function toast(msg){ var t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove('on')},1900); }
+function money(n){ return '¥'+(Math.round(n*100)/100).toLocaleString('zh-CN'); }
+
+/* ============ 抽屉 / 路由 ============ */
+var TITLES={home:'今日预览',life:'日常生活',ledger:'记账本',settings:'设置与数据'};
+function openDrawer(o){ $('#drawer').classList.toggle('on',o); $('#scrim').classList.toggle('on',o); }
+$('#menuBtn').onclick=function(){ openDrawer(!$('#drawer').classList.contains('on')); };
+$('#scrim').onclick=function(){ openDrawer(false); };
+
+function go(v){
+  $$('.view').forEach(function(s){ s.classList.toggle('active', s.id==='view-'+v); });
+  $$('#nav a').forEach(function(a){ a.classList.toggle('active', a.dataset.view===v); });
+  $('#viewTitle').textContent=TITLES[v];
+  openDrawer(false);
+  window.scrollTo(0,0);
+  render();
+}
+$$('#nav a').forEach(function(a){ a.onclick=function(e){ e.preventDefault(); go(a.dataset.view); }; });
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-goto]'); if(b) go(b.dataset.goto);
+});
+
+/* ============ 习惯逻辑 ============ */
+function logOf(dk){ if(!state.habitLog[dk]) state.habitLog[dk]={}; return state.habitLog[dk]; }
+function got(h,dk){ return (state.habitLog[dk]||{})[h.id]||0; }
+function isDone(h,dk){ return got(h,dk)>=h.target; }
+function doneCount(dk){ var n=0; state.habits.forEach(function(h){ if(isDone(h,dk)) n++; }); return n; }
+function allDone(dk){ return state.habits.length>0 && doneCount(dk)===state.habits.length; }
+function streak(){
+  var d=new Date(), n=0;
+  if(!allDone(key(d))) d.setDate(d.getDate()-1);
+  while(allDone(key(d))){ n++; d.setDate(d.getDate()-1); if(n>3650) break; }
+  return n;
+}
+function bumpHabit(h){
+  var dk=today(), L=logOf(dk), cur=L[h.id]||0;
+  if(h.target<=1) L[h.id]= cur>=1?0:1;
+  else L[h.id]= cur>=h.target?0:cur+1;
+  save(); render();
+}
+
+/* ============ 渲染 ============ */
+var MOODS=['😊','🥰','😌','😐','😔','😤','😭'];
+var MOOD_NOTE={'😊':'今天也要慢慢来呀 🌷','🥰':'心里开着花的一天 🌸','😌':'松弛一点也很好 🍃','😐':'平平淡淡也算数 ☁️','😔':'难过是会过去的 🌦️','😤':'先深呼吸三下 🌬️','😭':'今天允许自己不坚强 🫧'};
+var CATS=['🍜 餐饮','🛒 日用','🚌 交通','👗 服饰','💊 医疗','🎁 人情','📚 学习','✨ 其他'];
+var curCat=CATS[0];
+
+function showStore(){
+  $('#storeDot').className='dot'+(storeOK?'':' off');
+  $('#storeTxt').textContent=storeOK?'数据已保存在本机':'当前环境无法保存';
+  $('#warnSlot').innerHTML = storeOK ? '' :
+    '<div class="warn-bar">⚠️ 这个环境不允许保存数据,你现在的改动关掉页面就会消失。把这个 html 文件下载到手机或电脑,用浏览器打开,数据才会真的存下来。</div>';
+}
+
+function renderHome(){
+  var dk=today(), d=new Date();
+  $('#topDate').textContent=(d.getMonth()+1)+'月'+d.getDate()+'日 周'+'日一二三四五六'[d.getDay()];
+
+  var mood=state.moodLog[dk]||'';
+  $('#moods').innerHTML=MOODS.map(function(m){
+    return '<button class="mood'+(m===mood?' on':'')+'" data-mood="'+m+'">'+m+'</button>';
+  }).join('');
+  $('#moodNote').textContent=MOOD_NOTE[mood]||'今天心情怎么样?';
+
+  var mon=new Date(d); mon.setDate(d.getDate()-((d.getDay()+6)%7));
+  var wd=['一','二','三','四','五','六','日'], html='';
+  for(var i=0;i<7;i++) html+='<div class="wd">'+wd[i]+'</div>';
+  for(var j=0;j<7;j++){
+    var c=new Date(mon); c.setDate(mon.getDate()+j);
+    var cls = key(c)===dk?'day today':(c<d?'day past':'day');
+    html+='<div class="'+cls+'">'+c.getDate()+'</div>';
+  }
+  $('#week').innerHTML=html;
+
+  var t=new Date(state.countdown.date+'T00:00:00'), n0=new Date(); n0.setHours(0,0,0,0);
+  var left=Math.round((t-n0)/86400000);
+  $('#countBox').innerHTML='<div class="lab">⏳ 距离</div><div class="name">'+esc(state.countdown.title)+'</div>'+
+    '<div class="num">'+(isNaN(left)?'--':Math.abs(left))+'<small>'+(left<0?'天前':'天')+'</small></div>'+
+    '<div class="tiny">'+esc(state.countdown.date)+'</div>';
+
+  var dc=doneCount(dk), tot=state.habits.length||1, pct=Math.round(dc/tot*100);
+  setSprout('#homeSprout',pct);
+  $('#homeHabits').innerHTML=state.habits.map(function(h){
+    return '<span class="chip'+(isDone(h,dk)?'':' todo')+'">'+h.emoji+' '+esc(h.name)+'</span>';
+  }).join('')||'<span class="tiny">还没有习惯,去设置里加一个吧</span>';
+
+  var open=state.todos.filter(function(x){return !x.done});
+  $('#homeTodos').innerHTML = open.length
+    ? open.slice(0,3).map(function(x){return '<div class="item"><span class="tick"></span><span class="txt">'+esc(x.text)+'</span></div>'}).join('')
+      + (open.length>3?'<p class="tiny" style="margin:8px 0 0">还有 '+(open.length-3)+' 条</p>':'')
+    : '<div class="empty">今天没有待办<br>空着也挺好 🍃</div>';
+
+  var spent=monthSpent();
+  $('#homeSpent').textContent=money(spent);
+  $('#homeSpent').classList.toggle('over',spent>state.budget);
+  var p=state.budget>0?Math.min(spent/state.budget*100,100):0;
+  $('#homeBar').style.width=p+'%';
+  $('#homeBar').classList.toggle('over',spent>state.budget);
+  $('#homeBudget').textContent = state.budget>0
+    ? (spent>state.budget?'已超出预算 '+money(spent-state.budget):'预算还剩 '+money(state.budget-spent))
+    : '还没有设置预算';
+}
+
+function setSprout(sel,pct){
+  var box=$(sel); if(!box) return;
+  box.querySelector('.fill').style.width=pct+'%';
+  box.querySelector('.bud').style.left='calc('+pct+'% )';
+  box.querySelector('.bud').textContent = pct>=100?'🌳':(pct>=60?'🌿':(pct>0?'🌱':'🌰'));
+}
+
+function renderLife(){
+  var dk=today(), dc=doneCount(dk), tot=state.habits.length;
+  setSprout('#lifeSprout', tot?Math.round(dc/tot*100):0);
+  $('#lifeCount').innerHTML='<strong style="font-size:17px;color:var(--leaf-deep)">'+dc+'</strong> / '+tot+' 完成';
+  $('#streak').textContent='🔥 连续全勤 '+streak()+' 天';
+
+  var done=state.habits.filter(function(h){return isDone(h,dk)});
+  var left=state.habits.filter(function(h){return !isDone(h,dk)});
+  $('#doneChips').innerHTML = done.length?'<span class="tiny" style="width:100%">✅ 已完成 ('+done.length+')</span>'+done.map(function(h){return '<span class="chip">'+h.emoji+' '+esc(h.name)+'</span>'}).join(''):'';
+  $('#leftChips').innerHTML = left.length?'<span class="tiny" style="width:100%">💪 还需努力 ('+left.length+')</span>'+left.map(function(h){return '<span class="chip todo">'+h.emoji+' '+esc(h.name)+'</span>'}).join(''):'<span class="chip">🎉 今天全部完成啦</span>';
+
+  $('#habitGrid').innerHTML=state.habits.map(function(h){
+    var v=got(h,dk), done=v>=h.target, wide=h.target>1&&h.target<=10;
+    var body;
+    if(h.target>1){
+      if(h.target<=10){
+        var cups=''; for(var i=0;i<h.target;i++) cups+='<span class="cup'+(i<v?' on':'')+'"></span>';
+        body='<div class="cups">'+cups+'</div><div class="hs">'+(done?'今天达标啦 🎉':'还差 '+(h.target-v)+' 次')+'</div>';
+      }else{
+        body='<div class="counter"><span class="n">'+v+'</span><span class="muted">/ '+h.target+'</span></div>';
+      }
+    }else{
+      body='<div class="hs">'+(done?'✓ 已完成 🎉':'点一下打卡')+'</div>';
+    }
+    return '<button class="habit'+(done?' done':'')+(wide?' wide':'')+'" data-habit="'+h.id+'">'+
+      '<div class="hn">'+h.emoji+' '+esc(h.name)+'</div>'+body+'</button>';
+  }).join('')||'<p class="empty" style="grid-column:1/-1">还没有习惯<br>去「设置与数据」里加一个 🌼</p>';
+
+  var open=state.todos.filter(function(x){return !x.done}).length;
+  $('#todoBadge').textContent=open; $('#todoBadge').style.display=open?'':'none';
+  var sorted=state.todos.slice().sort(function(a,b){return (a.done?1:0)-(b.done?1:0)});
+  $('#todoList').innerHTML = sorted.length? sorted.map(function(x){
+    return '<div class="item'+(x.done?' done':'')+'"><button class="tick'+(x.done?' on':'')+'" data-todo="'+x.id+'">'+(x.done?'✓':'')+'</button>'+
+      '<span class="txt">'+esc(x.text)+'</span><button class="x" data-delTodo="'+x.id+'">×</button></div>';
+  }).join('') : '<div class="empty">清清爽爽,什么都没有 🍃</div>';
+}
+
+function monthSpent(){
+  var p=today().slice(0,7), s=0;
+  state.expenses.forEach(function(e){ if(e.date.slice(0,7)===p) s+=Number(e.amount)||0; });
+  return s;
+}
+function renderLedger(){
+  var d=new Date(), spent=monthSpent();
+  $('#ledMonth').textContent=d.getFullYear()+'年'+(d.getMonth()+1)+'月 · 已花';
+  $('#ledSpent').textContent=money(spent);
+  $('#ledSpent').classList.toggle('over',spent>state.budget);
+  var p=state.budget>0?Math.min(spent/state.budget*100,100):0;
+  $('#ledBar').style.width=p+'%'; $('#ledBar').classList.toggle('over',spent>state.budget);
+  $('#ledNote').textContent = state.budget>0
+    ? (spent>state.budget?'⚠️ 超出预算 '+money(spent-state.budget)+',悠着点':'预算 '+money(state.budget)+',还剩 '+money(state.budget-spent))
+    : '还没设置预算,可以去设置里加';
+
+  $('#catRow').innerHTML=CATS.map(function(c){
+    return '<button class="cat'+(c===curCat?' on':'')+'" data-cat="'+c+'">'+c+'</button>';
+  }).join('');
+
+  var pm=today().slice(0,7);
+  var list=state.expenses.filter(function(e){return e.date.slice(0,7)===pm}).sort(function(a,b){return a.date<b.date?1:-1});
+  if(!list.length){ $('#expList').innerHTML='<div class="empty">这个月还没有记录<br>从上面记第一笔开始 ✏️</div>'; return; }
+  var html='', last='';
+  list.forEach(function(e){
+    if(e.date!==last){ last=e.date; html+='<div class="daygroup">'+e.date.slice(5).replace('-','月')+'日</div>'; }
+    html+='<div class="item"><span>'+e.cat.split(' ')[0]+'</span><span class="txt">'+esc(e.note||e.cat.split(' ')[1]||'')+'</span>'+
+      '<span class="amt">'+money(e.amount)+'</span><button class="x" data-delExp="'+e.id+'">×</button></div>';
+  });
+  $('#expList').innerHTML=html;
+}
+
+function renderSettings(){
+  $('#brandName').textContent=state.appName;
+  $('#setName').value=state.appName;
+  $('#setBudget').value=state.budget;
+  $('#setCdName').value=state.countdown.title;
+  $('#setCdDate').value=state.countdown.date;
+  $('#habitEdit').innerHTML=state.habits.map(function(h){
+    return '<div class="item"><span>'+h.emoji+'</span><span class="txt">'+esc(h.name)+
+      (h.target>1?' <span class="tiny">· 目标 '+h.target+' 次</span>':'')+
+      '</span><button class="x" data-delHabit="'+h.id+'">×</button></div>';
+  }).join('')||'<div class="empty">一个习惯都没有 🌼</div>';
+}
+
+function render(){
+  showStore();
+  $('#brandName').textContent=state.appName;
+  document.title=state.appName+' · 个人工作台';
+  renderHome(); renderLife(); renderLedger(); renderSettings();
+}
+
+/* ============ 交互 ============ */
+document.addEventListener('click',function(e){
+  var el;
+  if(el=e.target.closest('[data-mood]')){ var dk=today(); state.moodLog[dk]= state.moodLog[dk]===el.dataset.mood?'':el.dataset.mood; save(); renderHome(); }
+  if(el=e.target.closest('[data-habit]')){ var h=state.habits.filter(function(x){return x.id===el.dataset.habit})[0]; if(h) bumpHabit(h); }
+  if(el=e.target.closest('[data-todo]')){ state.todos.forEach(function(x){ if(x.id===el.dataset.todo) x.done=!x.done; }); save(); render(); }
+  if(el=e.target.closest('[data-delTodo]')){ state.todos=state.todos.filter(function(x){return x.id!==el.getAttribute('data-delTodo')}); save(); render(); }
+  if(el=e.target.closest('[data-cat]')){ curCat=el.dataset.cat; renderLedger(); }
+  if(el=e.target.closest('[data-delExp]')){ state.expenses=state.expenses.filter(function(x){return x.id!==el.getAttribute('data-delExp')}); save(); render(); toast('已删除'); }
+  if(el=e.target.closest('[data-delHabit]')){
+    if(confirm('删掉这个习惯?历史打卡记录会保留。')){
+      state.habits=state.habits.filter(function(x){return x.id!==el.getAttribute('data-delHabit')}); save(); render();
+    }
+  }
+});
+
+$$('.tabs button').forEach(function(b){
+  b.onclick=function(){
+    $$('.tabs button').forEach(function(x){x.classList.remove('on')});
+    b.classList.add('on');
+    $('#tab-habits').style.display = b.dataset.tab==='habits'?'':'none';
+    $('#tab-todos').style.display  = b.dataset.tab==='todos'?'':'none';
+  };
+});
+
+function addTodo(){
+  var v=$('#todoInput').value.trim(); if(!v) return;
+  state.todos.unshift({id:uid(),text:v,done:false,ts:Date.now()});
+  $('#todoInput').value=''; save(); render(); toast('加上了 🌱');
+}
+$('#todoAdd').onclick=addTodo;
+$('#todoInput').onkeydown=function(e){ if(e.key==='Enter') addTodo(); };
+
+$('#expAdd').onclick=function(){
+  var a=parseFloat($('#expAmt').value);
+  if(!(a>0)){ toast('先填个金额吧'); return; }
+  state.expenses.push({id:uid(),amount:a,cat:curCat,note:$('#expNote').value.trim(),date:today()});
+  $('#expAmt').value=''; $('#expNote').value='';
+  save(); render();
+  toast(monthSpent()>state.budget&&state.budget>0?'⚠️ 这个月超预算了':'记好啦 ✏️');
+};
+
+$('#saveName').onclick=function(){ var v=$('#setName').value.trim()||'小绿芽'; state.appName=v; save(); render(); toast('改好了'); };
+$('#saveBudget').onclick=function(){ state.budget=Math.max(0,parseFloat($('#setBudget').value)||0); save(); render(); toast('预算已更新'); };
+$('#saveCd').onclick=function(){
+  var n=$('#setCdName').value.trim(), d=$('#setCdDate').value;
+  if(!n||!d){ toast('名字和日期都要填'); return; }
+  state.countdown={title:n,date:d}; save(); render(); toast('倒数日已更新');
+};
+$('#habitAdd').onclick=function(){
+  var n=$('#newName').value.trim(); if(!n){ toast('给它起个名字'); return; }
+  state.habits.push({id:uid(),emoji:$('#newEmoji').value.trim()||'🌼',name:n,target:parseInt($('#newTarget').value,10)||1});
+  $('#newName').value=''; $('#newEmoji').value='';
+  save(); render(); toast('新习惯加好了 🌱');
+};
+
+$('#btnExport').onclick=function(){
+  var blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='工作台备份-'+today()+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('已导出,记得存到网盘');
+};
+$('#btnImport').onclick=function(){ $('#fileIn').click(); };
+$('#fileIn').onchange=function(e){
+  var f=e.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(!d.habits) throw 0;
+      if(!confirm('导入会覆盖当前全部数据,确定吗?')) return;
+      var base=JSON.parse(JSON.stringify(DEFAULT));
+      for(var k in d) base[k]=d[k];
+      state=base; save(); render(); toast('导入成功 🌿');
+    }catch(err){ alert('这个文件读不出来,请选择之前导出的备份文件。'); }
+  };
+  r.readAsText(f); e.target.value='';
+};
+$('#btnReset').onclick=function(){
+  if(!confirm('会清空习惯记录、待办和账目,而且找不回来。确定?')) return;
+  if(!confirm('真的确定吗?建议先导出一份备份。')) return;
+  state=JSON.parse(JSON.stringify(DEFAULT)); save(); render(); go('home'); toast('已清空');
+};
+
+render();
+</script>
+</body>
+</html>
